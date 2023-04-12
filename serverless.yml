@@ -1,0 +1,50 @@
+service: serverless-nest-example
+
+frameworkVersion: '3'
+
+plugins:
+  - '@hewmen/serverless-plugin-typescript'
+  - serverless-plugin-optimize
+  - serverless-offline
+  # - serverless-plugin-warmup
+
+custom:
+  localstack:
+    stages:
+      - dev
+    endpoint: http://localhost:4566
+    autostart: true
+    debug: false
+    services:
+      - sqs
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+
+package:
+  individually: true
+
+functions:
+  main:
+    handler: src/main.handler
+    events:
+      - http:
+          method: any
+          path: /{proxy+}
+  processQueue:
+    handler: src/main.processQueue
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - sample-queue
+              - Arn
+# aws sqs create-queue --queue-name sample-queue --endpoint-url="http://localhost:4566"
+
+resources:
+  Resources:
+    MyQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: sample-queue
